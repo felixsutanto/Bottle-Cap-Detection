@@ -1,0 +1,94 @@
+# Dataset Configuration
+dataset:
+  root_path: "data"
+  images_path: "data/images"
+  labels_path: "data/labels"
+  train_split: 0.8
+  val_split: 0.2
+  # Class mapping MUST match the logic in preprocessing.py
+  # 0: Light Blue, 1: Dark Blue, 2: Others
+  names: ["light_blue", "dark_blue", "others"]
+
+# Color Classification Thresholds (HSV)
+# CRITICAL: OpenCV uses Hue (0-179), Saturation (0-255), Value (0-255)
+# Do not use 0-360 for Hue or 0-100 for S/V.
+color_classification:
+  light_blue:
+    # Target: Cyan/Light Blue (approx 170-210 degrees on 360 scale)
+    hue_min: 85
+    hue_max: 105
+    sat_min: 50
+    sat_max: 200
+    val_min: 100
+    val_max: 255
+  dark_blue:
+    # Target: Deep Blue (approx 200-240 degrees on 360 scale)
+    hue_min: 100
+    hue_max: 125
+    sat_min: 100
+    sat_max: 255
+    val_min: 40
+    val_max: 200
+
+# Model Configuration
+model:
+  name: "yolov8n" # Using Nano model is mandatory for edge speed
+  pretrained: true
+  num_classes: 3
+  input_size: 640
+
+# Training Configuration
+training:
+  epochs: 100
+  batch_size: 32 # Higher batch size for Nano model stability
+  learning_rate: 0.01
+  weight_decay: 0.0005
+  momentum: 0.937
+  warmup_epochs: 3
+  patience: 20
+  device: "0" # Use "0" for GPU, "cpu" for CPU
+  workers: 4
+  
+  # Data Augmentation
+  augmentation:
+    hsv_h: 0.015
+    hsv_s: 0.7
+    hsv_v: 0.4
+    degrees: 10.0
+    translate: 0.1
+    scale: 0.5
+    shear: 0.0
+    perspective: 0.0
+    flipud: 0.0
+    fliplr: 0.5
+    mosaic: 1.0
+    mixup: 0.0 # Disabled for small objects to avoid label confusion
+
+# Validation Configuration
+validation:
+  conf_threshold: 0.25
+  iou_threshold: 0.45
+  max_det: 300
+
+# Inference Configuration
+inference:
+  conf_threshold: 0.25
+  iou_threshold: 0.45
+  max_det: 100
+  save_results: true
+  output_dir: "outputs/inference"
+
+# Experiment Tracking
+wandb:
+  # FIXED: Disabled by default to prevent crash if not logged in
+  enabled: false 
+  project: "bsort-bottlecap-detection"
+  entity: null 
+  mode: "disabled"
+
+# Edge Optimization Settings (Critical for RPi 5)
+optimization:
+  export_onnx: true
+  export_tensorrt: false # RPi 5 does not support TensorRT natively
+  quantization: true # INT8 Quantization enabled for <10ms latency target
+  pruning: false

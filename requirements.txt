@@ -1,0 +1,16 @@
+ultralytics
+opencv-python
+numpy
+pyyaml
+wandb
+pillow
+tqdm
+click
+scikit-learn
+matplotlib
+seaborn
+pytest
+pytest-cov
+black
+isort
+pylint
