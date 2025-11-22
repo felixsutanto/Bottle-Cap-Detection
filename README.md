@@ -7,16 +7,6 @@
 
 A real-time computer vision system to detect and classify bottle caps into three categories (Light Blue, Dark Blue, Other), optimized for edge devices like the Raspberry Pi 5.
 
-## 🎯 Features
-
-- 🚀 **Fast Inference**: 3-5ms per frame on Raspberry Pi 5
-- 🎯 **High Accuracy**: mAP@50 > 0.90
-- 🎨 **Color-Based Classification**: HSV-based relabeling for accurate color detection
-- 🐳 **Docker Support**: Containerized deployment
-- 🔄 **CI/CD Ready**: GitHub Actions pipeline included
-- 📊 **Experiment Tracking**: WandB integration
-- 🛠️ **CLI Interface**: Easy-to-use command-line tools
-
 ## 📋 Table of Contents
 
 - [Quick Start](#-quick-start)
