@@ -330,34 +330,6 @@ bsort eval --config configs/settings.yaml \
 | **Precision** | TP / (TP + FP) | > 0.85 |
 | **Recall** | TP / (TP + FN) | > 0.80 |
 
-### Expected Performance
-
-```
-================================
-Evaluation Results:
-================================
-mAP@50:      0.9200
-mAP@50-95:   0.6800
-Precision:   0.8900
-Recall:      0.8700
-================================
-
-Per-Class Metrics:
-light_blue:
-  AP@50: 0.9100
-  Precision: 0.8800
-  Recall: 0.8500
-dark_blue:
-  AP@50: 0.9500
-  Precision: 0.9200
-  Recall: 0.9100
-other:
-  AP@50: 0.9000
-  Precision: 0.8700
-  Recall: 0.8500
-================================
-```
-
 ## 🚢 Deployment
 
 ### 1. Export Model for Edge Devices
@@ -436,51 +408,6 @@ python3 benchmark.py --model best.onnx --iterations 100
 | INT8 Quantization | 3-4x | 1-3% | Edge devices |
 | TensorRT | 4-5x | <1% | NVIDIA devices |
 
-## 📁 Project Structure
-
-```
-bottlecap-detection/
-├── .github/
-│   └── workflows/
-│       └── ci.yml              # CI/CD pipeline
-├── bsort/                       # Main package
-│   ├── __init__.py
-│   ├── cli.py                   # Command-line interface
-│   ├── config.py                # Configuration management
-│   ├── data/
-│   │   ├── __init__.py
-│   │   ├── dataset.py           # Dataset loading
-│   │   └── preprocessing.py     # Color-based relabeling
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── yolo.py             # Model definitions
-│   ├── training/
-│   │   ├── __init__.py
-│   │   ├── trainer.py          # Training pipeline
-│   │   └── validator.py        # Validation logic
-│   └── inference/
-│       ├── __init__.py
-│       └── predictor.py        # Inference engine
-├── configs/
-│   └── settings.yaml            # Configuration file
-├── data/                        # Dataset directory
-│   ├── images/
-│   ├── labels/
-│   └── labels_relabeled/
-├── notebooks/
-│   └── analysis.ipynb          # Jupyter notebook analysis
-├── tests/                       # Unit tests
-│   ├── __init__.py
-│   ├── test_data.py
-│   ├── test_model.py
-│   └── test_inference.py
-├── Dockerfile                   # Docker configuration
-├── pyproject.toml              # Package configuration
-├── requirements.txt            # Python dependencies
-├── README.md                   # This file
-└── .gitignore
-```
-
 ## ⚙️ Configuration
 
 ### Configuration File: `configs/settings.yaml`
@@ -539,55 +466,6 @@ inference:
   output_dir: "./outputs"
 ```
 
-## 🔄 CI/CD
-
-### GitHub Actions Pipeline
-
-The project includes automated CI/CD (`.github/workflows/ci.yml`):
-
-**Triggers:**
-- Push to `main` or `develop` branches
-- Pull requests
-
-**Pipeline Steps:**
-
-1. **Code Quality** ✅
-   - Black formatting check
-   - isort import sorting
-   - Pylint code analysis (score ≥ 8.0)
-
-2. **Testing** ✅
-   - Run pytest with coverage
-   - Generate coverage report
-   - Upload to Codecov
-
-3. **Docker Build** ✅
-   - Build Docker image
-   - Run smoke tests
-   - Push to registry (optional)
-
-### Run Checks Locally
-
-```bash
-# Code formatting
-black --check bsort/
-isort --check-only bsort/
-
-# Apply formatting
-black bsort/
-isort bsort/
-
-# Linting
-pylint bsort/
-
-# Unit tests with coverage
-pytest tests/ -v --cov=bsort --cov-report=html
-
-# View coverage report
-open htmlcov/index.html  # macOS
-start htmlcov/index.html  # Windows
-```
-
 ## 🐛 Troubleshooting
 
 ### Common Issues
@@ -615,16 +493,6 @@ python -c "from bsort.config import Config; cfg = Config.from_yaml('configs/sett
 # Test preprocessing
 bsort preprocess --config configs/settings.yaml
 ```
-
-### Getting Help
-
-1. Check [Troubleshooting](#-troubleshooting) section
-2. Search existing [GitHub Issues](https://github.com/your-repo/issues)
-3. Create new issue with:
-   - System information (`python --version`, OS)
-   - Error message (full traceback)
-   - Steps to reproduce
-   - Configuration file
 
 ## 📊 Performance
 
@@ -709,29 +577,6 @@ For production systems, aim for:
 - [ONNX Runtime](https://onnxruntime.ai/)
 - [OpenCV HSV Color Space](https://docs.opencv.org/4.x/df/d9d/tutorial_py_colorspaces.html)
 
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-Ensure all tests pass and code is formatted:
-
-```bash
-black bsort/
-isort bsort/
-pylint bsort/
-pytest tests/
-```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## 🙏 Acknowledgments
 
 - [Ultralytics](https://github.com/ultralytics/ultralytics) for YOLOv8
@@ -739,9 +584,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - OpenCV community for computer vision tools
 
 ---
-
-**Built with ❤️ for edge AI deployment**
-
-**Questions?** Open an issue or contact [your-email@example.com]
-
-**Star ⭐ this repo if you find it helpful!**
