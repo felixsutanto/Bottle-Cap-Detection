@@ -88,7 +88,7 @@ See `requirements.txt` for complete dependency list.
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/felixsutanto/Bottle-Cap-Detection.git
 cd bottlecap-detection
 ```
 
@@ -238,8 +238,6 @@ yolo detect predict model=runs/train/exp/weights/best.pt source='path/to/images/
 - **CUDA Cores:** 1024
 - **CUDA Version:** 13.0
 - **CPU:** Intel Core i5-10300H (4 physical cores, 8 logical cores)
-- **RAM:** 40 GB
-- **Available Disk:** ~204 GB
 
 ### Compatibility Notes
 
@@ -329,18 +327,6 @@ If training falls back to CPU:
 - **YOLOv8 Paper:** [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics)
 - **YOLO Original:** Redmon et al., "You Only Look Once: Unified, Real-Time Object Detection"
 - **Training Framework:** Ultralytics 8.3.229
-
-## License
-
-[Specify your license here - e.g., MIT, Apache 2.0, etc.]
-
-## Contact & Support
-
-**Developer:** Felix Sutanto  
-**Email:** felixsutanto2712@gmail.com  
-**Project:** Ada Mata - Bottle Cap Detection
-
-For issues, questions, or contributions, please open an GitHub issue or submit a pull request.
 
 ---
 
