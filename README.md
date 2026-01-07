@@ -353,16 +353,6 @@ For inference performance issues where processing is slower than expected, verif
 
 Memory errors during training typically indicate that the batch size is too large for available GPU memory. Reduce the batch size in your configuration and restart training. The YOLOv8 Nano model should train successfully with batch sizes as low as 8, though larger batch sizes generally provide more stable training dynamics.
 
-## Contributing
-
-Contributions to improve detection accuracy, reduce inference latency, or enhance system capabilities are welcome. When submitting pull requests, ensure all tests pass and code follows the established style guidelines enforced by Black and isort formatters. Add tests for new functionality to maintain code coverage above 80 percent.
-
-For bug reports or feature requests, open an issue with detailed reproduction steps and expected behavior descriptions. Include relevant configuration files and log outputs to facilitate troubleshooting.
-
-## License
-
-This project is released under the MIT License, permitting commercial and non-commercial use with attribution. See the LICENSE file for complete terms and conditions.
-
 ## Acknowledgments
 
 This system builds upon the excellent work of the Ultralytics team in developing and maintaining the YOLOv8 architecture. The ONNX Runtime provides critical optimization capabilities for edge deployment scenarios.
