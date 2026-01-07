@@ -1,586 +1,368 @@
-# Bottle Cap Detection System
+# Bottle Cap Detection System (BSORT)
 
-![Python](https://img.shields.io/badge/python-3.8%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![YOLOv8](https://img.shields.io/badge/YOLOv8-nano-orange)
-![Inference](https://img.shields.io/badge/inference-3--5ms-brightgreen)
+A high-performance computer vision system for real-time bottle cap detection and color classification, optimized for deployment on edge devices including Raspberry Pi 5. The system leverages YOLOv8 Nano architecture with color-based classification to distinguish between light blue, dark blue, and other colored bottle caps with inference speeds under 10 milliseconds per frame.
 
-A real-time computer vision system to detect and classify bottle caps into three categories (Light Blue, Dark Blue, Other), optimized for edge devices like the Raspberry Pi 5.
+## Overview
 
-## 📋 Table of Contents
+This project addresses the challenge of automated bottle cap sorting in industrial environments where speed and accuracy are paramount. The system combines object detection with intelligent color classification, preprocessing raw annotations to automatically categorize bottle caps based on their HSV color properties. The architecture is specifically designed to meet stringent latency requirements for edge deployment while maintaining high detection accuracy.
 
-- [Quick Start](#-quick-start)
-- [Installation](#-installation)
-- [Dataset Preparation](#-dataset-preparation)
-- [Training](#-training)
-- [Inference](#-inference)
-- [Evaluation](#-evaluation)
-- [Deployment](#-deployment)
-- [Project Structure](#-project-structure)
-- [Configuration](#-configuration)
-- [CI/CD](#-cicd)
-- [Troubleshooting](#-troubleshooting)
-- [Performance](#-performance)
-- [License](#-license)
+## Key Features
 
-## 🚀 Quick Start
+The system provides comprehensive functionality spanning the entire machine learning workflow from data preprocessing through deployment. The color-based relabeling pipeline automatically processes datasets by analyzing the HSV color space within detected regions, applying configurable thresholds to classify caps into distinct categories. This approach eliminates manual annotation errors and ensures consistent labeling across the dataset.
 
-### Windows (PowerShell / Command Prompt)
+Training capabilities include integration with Weights & Biases for experiment tracking, support for data augmentation strategies tailored to small object detection, and automated train-validation splitting with deterministic seeding. The system supports resuming training from checkpoints and provides comprehensive evaluation metrics including per-class average precision scores.
 
-```powershell
-# 1. Clone & Navigate
-git clone <your-repo-url>
+For deployment scenarios, the system offers ONNX export with optional INT8 quantization to achieve the target inference latency of under 10 milliseconds per frame. The inference pipeline supports multiple input sources including images, videos, and real-time camera feeds. Docker containerization ensures consistent deployment across different environments, while the command-line interface provides intuitive access to all system capabilities.
+
+## Technical Architecture
+
+The system architecture follows a modular design pattern with clear separation of concerns. The data preprocessing module implements a center-crop strategy to isolate bottle cap regions from background elements, particularly addressing challenges posed by green sorting boards that can confuse color classification algorithms. This preprocessing step calculates mean HSV values within the cropped region and applies configurable thresholds to determine color categories.
+
+The model component utilizes YOLOv8 Nano, selected specifically for its favorable balance between detection accuracy and inference speed on resource-constrained devices. The training pipeline incorporates cosine annealing learning rate scheduling, SGD optimization with momentum, and early stopping based on validation performance to prevent overfitting.
+
+Configuration management employs a hierarchical YAML-based system that separates dataset parameters, color classification thresholds, model hyperparameters, training settings, and inference configurations. This design enables rapid experimentation and deployment configuration changes without code modifications.
+
+## Installation
+
+The system requires Python 3.10 or higher and can be installed through multiple approaches depending on your deployment scenario. For development environments, clone the repository and install the package in editable mode to enable code modifications and testing.
+
+```bash
+git clone https://github.com/yourusername/bottlecap-detection.git
 cd bottlecap-detection
-
-# 2. Create & Activate Virtual Environment
-# PowerShell:
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-
-# Command Prompt (cmd):
-python -m venv venv
-venv\Scripts\activate.bat
-
-# 3. Install Dependencies (quotes required in PowerShell)
-pip install -e ".[dev]"
-
-# 4. Preprocess Dataset
-bsort preprocess --config configs/settings.yaml
-
-# 5. Train Model
-bsort train --config configs/settings.yaml
-
-# 6. Run Inference
-bsort infer --config configs/settings.yaml --image data\images\sample.jpg --save --show
+pip install -e .
 ```
 
-**Note:** If you get a permission error on PowerShell, run:
-```powershell
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-### Linux / macOS
+For production deployment, install the package directly without development dependencies.
 
 ```bash
-# 1. Clone repository
-git clone <your-repo-url>
-cd bottlecap-detection
-
-# 2. Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# 3. Install dependencies
-pip install -e ".[dev]"
-
-# 4. Preprocess dataset
-bsort preprocess --config configs/settings.yaml
-
-# 5. Train model
-bsort train --config configs/settings.yaml
-
-# 6. Run inference
-bsort infer --config configs/settings.yaml --image data/images/sample.jpg --save --show
+pip install .
 ```
 
-## 💻 Installation
-
-### Option A: Using pip (Development)
+To include development tools for testing and code quality checks, install with the optional development dependencies.
 
 ```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Windows: .\venv\Scripts\activate
-
-# Install in editable mode with dev dependencies
 pip install -e ".[dev]"
-
-# Verify installation
-bsort --help
 ```
 
-### Option B: Using Docker (Production)
+### Docker Deployment
+
+The project includes a production-ready Dockerfile that packages the system with all dependencies and runtime requirements. Build the Docker image using the following command.
 
 ```bash
-# Build Docker image
-docker build -t bottlecap-detection:latest .
-
-# Run training
-docker run -v $(pwd)/data:/app/data \
-           -v $(pwd)/outputs:/app/outputs \
-           --gpus all \
-           bottlecap-detection:latest \
-           bsort train --config configs/settings.yaml
-
-# Run inference
-docker run -v $(pwd)/data:/app/data \
-           -v $(pwd)/outputs:/app/outputs \
-           bottlecap-detection:latest \
-           bsort infer --config configs/settings.yaml --image data/test.jpg
+docker build -t bsort:latest .
 ```
 
-### Dependencies
+Run the containerized system with volume mounts for data and output directories.
 
-Core dependencies:
-- `ultralytics>=8.0.0` - YOLOv8 framework
-- `opencv-python>=4.8.0` - Computer vision library
-- `numpy>=1.24.0` - Numerical computing
-- `pyyaml>=6.0` - Configuration management
-- `wandb>=0.15.0` - Experiment tracking
-- `click>=8.1.0` - CLI framework
-
-See `requirements.txt` for complete list.
-
-## 📊 Dataset Preparation
-
-### 1. Dataset Structure
-
-Extract your dataset into the `data/` directory:
-
-```
-data/
-├── images/
-│   ├── image1.jpg
-│   ├── image2.jpg
-│   └── ...
-└── labels/
-    ├── image1.txt  (YOLO format: class x y w h)
-    ├── image2.txt
-    └── ...
+```bash
+docker run -v $(pwd)/data:/app/data -v $(pwd)/outputs:/app/outputs bsort:latest infer --config configs/settings.yaml --image data/sample.jpg
 ```
 
-### 2. Color-Based Relabeling (Critical Step)
+## Configuration
 
-The raw dataset contains generic class labels. Run the preprocessing step to relabel based on color:
+System behavior is controlled through the `configs/settings.yaml` file, which defines all operational parameters. The dataset configuration section specifies paths to images and labels, along with the train-validation split ratio. Class names must align with the preprocessing logic where index 0 represents light blue caps, index 1 represents dark blue caps, and index 2 represents other colors.
+
+Color classification thresholds utilize OpenCV's HSV color space where hue ranges from 0 to 179, while saturation and value range from 0 to 255. These thresholds require careful tuning based on your specific bottle cap colors and lighting conditions. The provided default values target typical cyan and deep blue bottle caps but should be adjusted through experimentation with your dataset.
+
+Model configuration parameters control the YOLOv8 variant selection, with YOLOv8 Nano mandated for edge deployment scenarios. Input size defaults to 640 pixels, providing a good balance between detection accuracy and processing speed. Training configuration encompasses epoch count, batch size, learning rate, and data augmentation parameters. The augmentation settings are specifically tuned for small object detection, with mixup disabled to prevent label confusion.
+
+Inference parameters define confidence thresholds for detection filtering and non-maximum suppression thresholds for duplicate removal. These values significantly impact the precision-recall tradeoff and should be adjusted based on your application requirements.
+
+## How to Run
+
+This section provides step-by-step instructions for the most common workflows, from initial setup through production deployment. Each workflow assumes you have completed the installation steps and have your dataset prepared in YOLO format.
+
+### Quick Start: Complete Pipeline
+
+For users who want to run the entire pipeline from preprocessing through inference, follow these steps in sequence. This workflow represents the standard approach for training a new model on your dataset.
+
+First, ensure your dataset is organized with images in the `data/images` directory and corresponding label files in the `data/labels` directory. Each label file should use YOLO format with one line per object. Initial class labels can be arbitrary as the preprocessing step will reclassify based on color analysis.
+
+Next, review and adjust the configuration file at `configs/settings.yaml` to match your dataset paths and color thresholds. Pay particular attention to the HSV threshold values in the color classification section, as these directly impact classification accuracy. If you are unsure about appropriate values, start with the provided defaults and iterate based on preprocessing results.
+
+Execute the preprocessing command to analyze your dataset and apply color-based relabeling. This step creates the organized train-validation split structure required for training.
 
 ```bash
 bsort preprocess --config configs/settings.yaml
 ```
 
-This command:
-- Analyzes each bounding box region in HSV color space
-- Classifies as: **0** (Light Blue), **1** (Dark Blue), or **2** (Other)
-- Generates `data/labels_relabeled/` with corrected labels
-- Creates train/val splits automatically
+The preprocessing output will display statistics about your dataset including total images processed, annotation counts, and the distribution across the three color classes. Review these statistics to ensure the color classification is performing as expected. If the distribution appears skewed or unexpected, revisit your HSV threshold settings.
 
-**Color Classification Thresholds (HSV):**
-
-| Class | Hue | Saturation | Value |
-|-------|-----|------------|-------|
-| Light Blue | 170-210° | 20-60% | 60-100% |
-| Dark Blue | 200-240° | 40-100% | 20-60% |
-| Other | All remaining colors | - | - |
-
-### 3. Verify Preprocessing
-
-```bash
-# Check output
-ls data/labels_relabeled/
-
-# Expected output shows class distribution
-# Light Blue: X samples
-# Dark Blue: Y samples  
-# Other: Z samples
-```
-
-## 🎯 Training
-
-### Basic Training
+With preprocessing complete, initiate model training using the prepared dataset. The training process will run for the configured number of epochs, automatically saving checkpoints and tracking validation metrics.
 
 ```bash
 bsort train --config configs/settings.yaml
 ```
 
-### Advanced Options
+Training progress appears in the console with regular updates on loss values and validation metrics. The system saves the best performing model based on validation mAP@50 scores to `runs/train/exp/weights/best.pt`. Training duration varies based on dataset size and hardware capabilities, typically requiring several hours on GPU hardware for datasets with thousands of images.
+
+After training completes, evaluate the model performance on the validation dataset to assess accuracy and identify potential improvements.
 
 ```bash
-# Resume from checkpoint
-bsort train --config configs/settings.yaml \
-            --resume runs/train/exp1/weights/last.pt
-
-# Debug mode (verbose logging)
-bsort train --config configs/settings.yaml --debug
+bsort eval --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --dataset val
 ```
 
-### Configuration
+The evaluation output provides comprehensive metrics including overall mAP scores, precision, recall, and per-class performance breakdowns. Use these metrics to determine whether additional training, data collection, or threshold adjustments are necessary.
 
-Edit `configs/settings.yaml` to tune hyperparameters:
-
-```yaml
-training:
-  epochs: 100           # Number of training epochs
-  batch_size: 16        # Reduce if OOM (try 8 or 4)
-  learning_rate: 0.01   # Initial learning rate
-  device: "cuda:0"      # "cuda:0", "cpu", or "mps" (Mac)
-  patience: 20          # Early stopping patience
-  workers: 4            # Data loading workers (set to 0 on Windows if issues)
-```
-
-### Training Output
-
-Results are saved to `runs/train/exp/`:
-
-```
-runs/train/exp/
-├── weights/
-│   ├── best.pt        # Best model (highest mAP)
-│   └── last.pt        # Latest checkpoint
-├── results.png        # Training curves
-├── confusion_matrix.png
-├── F1_curve.png
-├── PR_curve.png
-└── val_batch0_pred.jpg
-```
-
-### Monitoring with WandB
+Once satisfied with model performance, run inference on new images or videos to verify real-world performance.
 
 ```bash
-# Login to WandB (first time only)
-wandb login
-
-# Update configs/settings.yaml
-wandb:
-  enabled: true
-  project: "bottlecap-detection"
-  entity: "your-username"  # Your WandB username
-
-# View results at: https://wandb.ai/your-username/bottlecap-detection
+bsort infer --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --image path/to/test_image.jpg --show
 ```
 
-## 🔍 Inference
+The system displays annotated results with bounding boxes and class labels for each detected bottle cap. Review these visual results to ensure the model generalizes well to unseen data.
 
-### Single Image
+### Workflow: Training from Scratch
+
+When starting with a new dataset or experimenting with different configurations, this workflow provides detailed steps for the training process. This approach assumes you have already preprocessed your data or are working with a dataset that has been organized into the required structure.
+
+Begin by verifying your data organization. The training process expects to find images in `data/images/train` and `data/images/val` directories, with corresponding labels in `data/labels/train` and `data/labels/val`. If your dataset lacks this structure, run the preprocessing command first.
+
+Review the training configuration section in `configs/settings.yaml`. Key parameters to consider include the number of epochs, batch size, and learning rate. For initial experiments, the default values provide a reasonable starting point. Larger datasets may benefit from increased epochs, while smaller datasets might require reduced learning rates to prevent overfitting.
+
+If you have limited GPU memory, reduce the batch size accordingly. The YOLOv8 Nano architecture is designed to be memory efficient, but batch sizes of 32 or higher may exceed available memory on consumer GPUs. A batch size of 16 typically works well across different hardware configurations.
+
+Enable Weights & Biases tracking if you want to monitor training progress remotely or compare multiple experiments. Update the wandb section in your configuration with your project name and entity. If you prefer not to use external tracking, set the enabled flag to false.
+
+Start the training process with your configured parameters.
 
 ```bash
-bsort infer --config configs/settings.yaml \
-            --image data/images/test.jpg \
-            --save \
-            --show
+bsort train --config configs/settings.yaml
 ```
 
-### Batch Processing (Folder)
+The training process begins with several warmup epochs using a reduced learning rate, then transitions to the full learning rate with cosine annealing decay. Monitor the console output for loss values that should generally decrease over time. Validation metrics are computed at regular intervals, providing early feedback on model performance.
+
+If training is interrupted for any reason, resume from the last saved checkpoint to avoid losing progress.
 
 ```bash
-bsort infer --config configs/settings.yaml \
-            --image data/images/val \
-            --save
+bsort train --config configs/settings.yaml --resume runs/train/exp/weights/last.pt
 ```
 
-### Video
+The resume functionality loads the model weights, optimizer state, and epoch counter from the checkpoint, continuing training seamlessly from where it stopped.
+
+Once training completes, compare the performance of different checkpoints by evaluating both the final model and the best model on validation data. Sometimes the final model may overfit slightly compared to the best checkpoint saved during training.
 
 ```bash
-bsort infer --config configs/settings.yaml \
-            --video data/test.mp4 \
-            --save
+bsort eval --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --dataset val
+bsort eval --config configs/settings.yaml --weights runs/train/exp/weights/last.pt --dataset val
 ```
 
-### Webcam (Real-time)
+### Workflow: Inference on New Data
+
+When you have a trained model and need to process new images or videos, this workflow demonstrates the various inference options available. The inference pipeline supports batch processing of images, video analysis, and real-time camera feeds.
+
+For single image inference with visual display of results, use the following command. This approach is ideal for quick validation and debugging.
 
 ```bash
-bsort infer --config configs/settings.yaml \
-            --source 0  # Camera index (0 for default camera)
+bsort infer --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --image path/to/image.jpg --show
 ```
 
-### Custom Weights
+The system loads the image, applies the model with configured confidence and IOU thresholds, and displays the annotated result in a window. Press any key to close the window and proceed.
+
+To process an entire directory of images, specify the directory path instead of a single file. The system iterates through all images in the directory, applying detection to each one.
 
 ```bash
-bsort infer --config configs/settings.yaml \
-            --image data/test.jpg \
-            --weights runs/train/exp/weights/best.pt
+bsort infer --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --image path/to/image_directory/ --save
 ```
 
-### Inference Output
+Results are saved to the output directory specified in your configuration, typically `outputs/inference/predict`. Each output image includes bounding boxes, class labels, and confidence scores for detected bottle caps.
 
-Results saved to `outputs/predict/`:
-
-```
-outputs/predict/
-├── test.jpg           # Image with bounding boxes
-├── labels/
-│   └── test.txt      # Detection coordinates
-└── crops/
-    ├── light_blue/   # Cropped detections by class
-    ├── dark_blue/
-    └── other/
-```
-
-## 📈 Evaluation
-
-### Validate Model
+For video analysis, provide a path to the video file. The inference pipeline processes each frame sequentially, applying detection and optionally saving the annotated video.
 
 ```bash
-# Validate on validation set
-bsort eval --config configs/settings.yaml --dataset val
-
-# Validate on test set
-bsort eval --config configs/settings.yaml --dataset test
-
-# Use custom weights
-bsort eval --config configs/settings.yaml \
-           --weights runs/train/exp/weights/best.pt \
-           --dataset val
+bsort infer --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --video path/to/video.mp4 --save
 ```
 
-### Metrics Explained
+The annotated video is saved to the output directory, maintaining the original frame rate and resolution. This functionality is useful for analyzing recorded sorting operations or demonstration purposes.
 
-| Metric | Description | Target |
-|--------|-------------|--------|
-| **mAP@50** | Mean Average Precision at IoU=0.50 | > 0.85 |
-| **mAP@50-95** | Average from IoU=0.50 to 0.95 (strict) | > 0.60 |
-| **Precision** | TP / (TP + FP) | > 0.85 |
-| **Recall** | TP / (TP + FN) | > 0.80 |
-
-## 🚢 Deployment
-
-### 1. Export Model for Edge Devices
-
-**ONNX (Recommended for Raspberry Pi 5)**
+To perform real-time inference using a connected camera, specify the camera index as the source. Camera index 0 typically refers to the default system camera.
 
 ```bash
-bsort export --config configs/settings.yaml \
-             --weights runs/train/exp/weights/best.pt \
-             --format onnx \
-             --simplify
+bsort infer --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --source 0 --show
 ```
 
-Benefits:
-- Cross-platform compatibility
-- 2-3x faster inference
-- Smaller file size (~6MB)
+The system opens a live view window displaying the camera feed with real-time detection overlays. This mode is particularly useful for testing deployment scenarios and verifying performance under actual operating conditions. Press 'q' to exit the live inference mode.
 
-**TensorRT (NVIDIA Jetson/GPU)**
+If inference results show too many false positives, increase the confidence threshold in your configuration file. Conversely, if the model misses valid detections, try lowering the threshold. The IOU threshold controls how aggressively duplicate detections are suppressed, with higher values being more permissive of overlapping boxes.
+
+### Workflow: Edge Deployment Optimization
+
+When preparing models for deployment on resource-constrained devices like Raspberry Pi 5, optimization through model export and quantization is essential. This workflow guides you through creating deployment-ready model files.
+
+Start by exporting your trained model to ONNX format, which provides broad compatibility across different inference frameworks and platforms.
 
 ```bash
-bsort export --config configs/settings.yaml \
-             --weights best.pt \
-             --format tensorrt
+bsort export --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --format onnx --simplify
 ```
 
-Benefits:
-- 3-5x faster on NVIDIA devices
-- INT8 quantization support
-- Optimized for GPU inference
+The simplify flag removes redundant operators from the ONNX graph, reducing model complexity and improving inference speed. The resulting ONNX file is saved in the same directory as the original weights file.
 
-### 2. Raspberry Pi 5 Deployment
-
-**Install Dependencies on Pi:**
+For maximum performance on edge devices, apply INT8 quantization during export. This optimization reduces model size by approximately 75 percent and significantly accelerates inference, particularly on devices with limited computational resources.
 
 ```bash
-# System packages
-sudo apt-get update
-sudo apt-get install python3-opencv python3-numpy libgomp1
-
-# ONNX Runtime
-pip3 install onnxruntime
-
-# Copy files to Pi
-scp best.onnx pi@raspberrypi:/home/pi/
-scp -r bsort/ pi@raspberrypi:/home/pi/
+bsort export --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --format onnx --int8
 ```
 
-**Run Inference on Pi:**
+INT8 quantization requires calibration data to determine appropriate quantization parameters. Ensure your `data.yaml` file points to representative training images. The export process analyzes these images to compute optimal quantization scales for each layer.
 
-```python
-from bsort.inference.predictor import Predictor
-
-# Predictor automatically detects .onnx extension
-predictor = Predictor(config, weights_path='best.onnx')
-results = predictor.predict('test.jpg')
-```
-
-**Performance Benchmarking:**
+After exporting the optimized model, verify its performance using the benchmark tool. This measurement confirms whether the optimized model meets your latency requirements.
 
 ```bash
-# Create benchmark script
-python3 benchmark.py --model best.onnx --iterations 100
-
-# Expected output:
-# Mean inference time: 3.2ms
-# Throughput: 312 FPS
+bsort benchmark --weights runs/train/exp/weights/best.onnx --device cpu --iterations 100
 ```
 
-### 3. Optimization Tips
+The benchmark runs 100 inference iterations with synthetic input data, reporting average processing time per frame and frames per second throughput. For Raspberry Pi 5 deployment, target average times below 10 milliseconds to ensure real-time performance at standard video frame rates.
 
-| Optimization | Speedup | Accuracy Loss | Recommended For |
-|--------------|---------|---------------|-----------------|
-| ONNX Export | 2-3x | 0% | All deployments |
-| FP16 Precision | 1.5-2x | <1% | GPU devices |
-| INT8 Quantization | 3-4x | 1-3% | Edge devices |
-| TensorRT | 4-5x | <1% | NVIDIA devices |
+If benchmark results exceed the latency target, consider additional optimizations such as reducing input resolution in your configuration, further simplifying the model architecture, or ensuring you are using the INT8 quantized version. Input resolution has a significant impact on inference speed, with 640x640 providing a good balance for most applications.
 
-## ⚙️ Configuration
-
-### Configuration File: `configs/settings.yaml`
-
-```yaml
-# Dataset paths
-dataset:
-  root_path: "./data"
-  images_path: "./data/images"
-  labels_path: "./data/labels"
-  train_split: 0.8
-  val_split: 0.2
-
-# Color classification thresholds (HSV)
-color_classification:
-  light_blue:
-    hue_min: 170      # OpenCV scale: 0-179
-    hue_max: 210
-    sat_min: 20       # OpenCV scale: 0-255
-    sat_max: 60
-    val_min: 60       # OpenCV scale: 0-255
-    val_max: 100
-  dark_blue:
-    hue_min: 200
-    hue_max: 240
-    sat_min: 40
-    sat_max: 100
-    val_min: 20
-    val_max: 60
-
-# Model configuration
-model:
-  name: "yolov8n"     # yolov8n, yolov8s, yolov8m
-  pretrained: true
-  num_classes: 3
-  input_size: 640     # 416, 640, 1280
-
-# Training hyperparameters
-training:
-  epochs: 100
-  batch_size: 16
-  learning_rate: 0.01
-  weight_decay: 0.0005
-  momentum: 0.937
-  warmup_epochs: 3
-  patience: 20
-  device: "cuda:0"    # cuda:0, cpu, mps
-  workers: 4          # Set to 0 on Windows if issues
-
-# Inference settings
-inference:
-  conf_threshold: 0.25    # Confidence threshold
-  iou_threshold: 0.45     # NMS IoU threshold
-  max_det: 100            # Max detections per image
-  save_results: true
-  output_dir: "./outputs"
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-| Issue | Solution |
-|-------|----------|
-| **CUDA Out of Memory** | Reduce `batch_size` to 8 or 4 in `settings.yaml` |
-| **Slow Training** | Increase `workers` (if CPU allows) or reduce `input_size` to 416 |
-| **Model Overfitting** | Increase `weight_decay` to 0.001, enable more augmentation, collect more data |
-| **Inference Too Slow** | Export to ONNX format, use INT8 quantization, check `libgomp1` installation |
-| **Wrong Colors Detected** | Verify HSV thresholds in `settings.yaml` (OpenCV scale: H=0-179, S/V=0-255) |
-| **"File Not Found" (Windows)** | Use backslashes `\` or quote paths. Check file exists with `dir` command |
-| **Permission Denied (PowerShell)** | Run: `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` |
-| **DataLoader Errors (Windows)** | Set `workers: 0` in `settings.yaml` |
-
-### Debug Mode
+Test the exported model with actual inference to verify that accuracy remains acceptable after optimization.
 
 ```bash
-# Enable verbose logging
-bsort train --config configs/settings.yaml --debug
-
-# Check configuration
-python -c "from bsort.config import Config; cfg = Config.from_yaml('configs/settings.yaml'); print(cfg)"
-
-# Test preprocessing
-bsort preprocess --config configs/settings.yaml
+bsort infer --config configs/settings.yaml --weights runs/train/exp/weights/best.onnx --image path/to/test_image.jpg --show
 ```
 
-## 📊 Performance
+Compare the detection results from the ONNX model against the original PyTorch model to assess any accuracy degradation. Minor differences in confidence scores are normal due to numerical precision changes, but significant detection misses or false positives may indicate issues with the quantization process.
 
-### Model Comparison
+### Workflow: Model Evaluation and Analysis
 
-| Model | mAP@50 | mAP@50-95 | Inference (RPi5) | Parameters | Size |
-|-------|--------|-----------|------------------|------------|------|
-| **YOLOv8n** ✅ | 0.92 | 0.68 | **3-5ms** | 3.2M | 6MB |
-| YOLOv8s | 0.94 | 0.72 | 5-8ms | 11.2M | 22MB |
-| YOLOv5n | 0.90 | 0.65 | 4-6ms | 1.9M | 4MB |
-| MobileNetV3 | 0.87 | 0.61 | 8-12ms | 3.5M | 7MB |
+Thorough evaluation of model performance is crucial for understanding strengths, weaknesses, and potential areas for improvement. This workflow demonstrates comprehensive evaluation techniques.
 
-**Recommendation:** YOLOv8-nano provides the best balance of speed and accuracy for edge deployment.
+Begin with standard validation set evaluation to establish baseline performance metrics.
 
-### Inference Benchmarks
+```bash
+bsort eval --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --dataset val
+```
 
-| Device | Format | Precision | Inference Time | FPS |
-|--------|--------|-----------|----------------|-----|
-| Raspberry Pi 5 | PyTorch | FP32 | 8-12ms | 83-125 |
-| Raspberry Pi 5 | ONNX | FP32 | 3-5ms | 200-333 |
-| Raspberry Pi 5 | ONNX | INT8 | 2-3ms | 333-500 |
-| NVIDIA Jetson | TensorRT | FP16 | 1-2ms | 500-1000 |
-| Desktop GPU (RTX 3080) | PyTorch | FP32 | 0.5-1ms | 1000-2000 |
+The output displays overall metrics including mAP@50, mAP@50-95, precision, and recall. These aggregate metrics provide a high-level view of model performance but may obscure class-specific issues.
 
-## 📝 Best Practices
+Examine the per-class metrics carefully, as they reveal performance disparities between different bottle cap colors. If one class significantly underperforms the others, consider whether that class is underrepresented in your training data or whether the color classification thresholds need adjustment.
 
-### Development Workflow
+For production deployments, evaluate the model on a held-out test set that was not used during training or validation. This provides the most realistic estimate of real-world performance.
 
-1. **Always use virtual environments**
-2. **Track experiments with WandB**
-3. **Version control models** (Git tags: `v1.0`, `v1.1`)
-4. **Run tests before committing** (`pytest tests/`)
-5. **Format code** (`black bsort/`, `isort bsort/`)
+```bash
+bsort eval --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --dataset test
+```
 
-### Production Deployment
+Significant performance drops between validation and test sets indicate potential overfitting or distribution shift issues. In such cases, consider collecting more diverse training data or applying stronger regularization through data augmentation.
 
-1. **Never deploy `.pt` files** → Export to ONNX/TensorRT
-2. **Use model versioning** (WandB Artifacts)
-3. **Implement monitoring** (log predictions, confidence scores)
-4. **Set up A/B testing** for new models
-5. **Schedule periodic retraining** with new data
+If you have access to production data that differs from your training distribution, create a custom evaluation dataset and assess model performance on this realistic data. This evaluation most accurately predicts deployment performance and identifies domain adaptation requirements.
 
-### Data Collection Guidelines
+Compare multiple model checkpoints to understand how performance evolves during training and identify the optimal stopping point.
 
-For production systems, aim for:
-- **Minimum 200+ images** (current: 10 images)
-- **Balanced class distribution** (equal samples per class)
-- **Diverse conditions** (lighting, angles, backgrounds)
-- **Multiple viewpoints** (top, side, angled)
+```bash
+bsort eval --config configs/settings.yaml --weights runs/train/exp1/weights/best.pt --dataset val
+bsort eval --config configs/settings.yaml --weights runs/train/exp2/weights/best.pt --dataset val
+bsort eval --config configs/settings.yaml --weights runs/train/exp3/weights/best.pt --dataset val
+```
 
-## 🔬 Technical Details
+This comparison helps determine whether extended training improves results or if the model has plateaued. It also validates the effectiveness of different hyperparameter configurations.
 
-### Color Classification Algorithm
+### Docker Deployment Workflow
 
-1. Extract ROI from bounding box
-2. Convert BGR → HSV color space
-3. Calculate mean HSV values
-4. Apply threshold rules:
-   - Light Blue: High value, moderate saturation
-   - Dark Blue: Low value, high saturation
-   - Other: Everything else
-5. Return class ID (0, 1, or 2)
+For reproducible deployments across different environments, use the Docker containerization approach. This workflow ensures consistent behavior regardless of the host system configuration.
 
-### Data Augmentation Pipeline
+Build the Docker image from the project root directory. The build process installs all dependencies and packages the complete system.
 
-- Geometric: Rotation (±10°), flip (50%), translation (±10%), scale (0.5-1.5x)
-- Color: HSV jittering, brightness/contrast adjustment
-- Advanced: Mosaic (4 images), MixUp (α=0.1), random erasing
+```bash
+docker build -t bsort:latest .
+```
 
-### Architecture: YOLOv8-nano
+The build creates a self-contained image with Python 3.10, all required libraries, and the BSORT package. Image size is optimized by using the slim Python base image and cleaning up unnecessary files.
 
-- **Backbone:** CSPDarknet with C2f blocks
-- **Neck:** PANet feature pyramid
-- **Head:** Decoupled detection head
-- **Loss:** CIOU + BCE (anchor-free)
+To run preprocessing inside the container, mount your data directory as a volume.
 
-## 📚 Additional Resources
+```bash
+docker run -v $(pwd)/data:/app/data -v $(pwd)/configs:/app/configs bsort:latest preprocess --config configs/settings.yaml
+```
 
-- [Jupyter Notebook Analysis](notebooks/analysis.ipynb) - Complete analysis and experiments
-- [YOLOv8 Documentation](https://docs.ultralytics.com/)
-- [WandB Guides](https://docs.wandb.ai/)
-- [ONNX Runtime](https://onnxruntime.ai/)
-- [OpenCV HSV Color Space](https://docs.opencv.org/4.x/df/d9d/tutorial_py_colorspaces.html)
+The volume mounts ensure that the container can access your dataset and write preprocessed results back to the host filesystem. Without these mounts, data would be isolated inside the container and lost when it terminates.
 
-## 🙏 Acknowledgments
+For training inside the container, mount additional directories for output preservation.
 
-- [Ultralytics](https://github.com/ultralytics/ultralytics) for YOLOv8
-- [Weights & Biases](https://wandb.ai/) for experiment tracking
-- OpenCV community for computer vision tools
+```bash
+docker run --gpus all -v $(pwd)/data:/app/data -v $(pwd)/configs:/app/configs -v $(pwd)/runs:/app/runs bsort:latest train --config configs/settings.yaml
+```
 
----
+The `--gpus all` flag enables GPU access inside the container, significantly accelerating training. Omit this flag if running on CPU-only systems, though training will be considerably slower.
+
+Run inference with the containerized system by mounting the image or video you want to process along with an output directory for results.
+
+```bash
+docker run -v $(pwd)/data:/app/data -v $(pwd)/outputs:/app/outputs -v $(pwd)/runs:/app/runs bsort:latest infer --config configs/settings.yaml --weights runs/train/exp/weights/best.pt --image data/test.jpg --save
+```
+
+The annotated output images appear in the mounted outputs directory on your host system, accessible immediately after the container completes.
+
+For interactive development inside the container, start a bash shell with the necessary mounts.
+
+```bash
+docker run -it -v $(pwd):/app bsort:latest bash
+```
+
+This approach provides a consistent development environment that matches production deployment, reducing environment-related bugs and compatibility issues.
+
+## Dataset Requirements
+
+The system expects datasets organized in YOLO format with images in one directory and corresponding label files in another. Each label file should contain one line per object with format `class_id x_center y_center width height` where coordinates are normalized to the range 0 to 1.
+
+Initial annotations can use any class labels as the preprocessing step will reclassify them based on color analysis. However, ensure bounding boxes accurately encompass the entire bottle cap to enable proper color extraction. The preprocessing pipeline creates a structured directory layout with separate train and validation subdirectories for both images and labels.
+
+## Performance Considerations
+
+Achieving the 10 millisecond inference latency target on Raspberry Pi 5 requires careful optimization. The YOLOv8 Nano architecture provides the foundational efficiency, but additional optimizations through ONNX export and INT8 quantization are essential for edge deployment. These optimizations reduce model size by approximately 75 percent while maintaining acceptable accuracy degradation of less than 2 percent mAP.
+
+The color classification preprocessing stage adds minimal overhead as it operates only during dataset preparation rather than inference time. This design decision separates the computationally intensive color analysis from the real-time detection pipeline, ensuring consistent inference performance.
+
+For production deployments, consider implementing batch processing where applicable to amortize model loading overhead across multiple frames. However, be mindful that larger batch sizes increase memory requirements and may not be suitable for resource-constrained devices.
+
+## Testing
+
+The project includes a comprehensive test suite covering configuration loading, data preprocessing, model initialization, and inference pipelines. Run the complete test suite with coverage reporting using pytest.
+
+```bash
+pytest tests/ --cov=bsort --cov-report=term-missing
+```
+
+Individual test modules can be executed separately for focused development.
+
+```bash
+pytest tests/test_data.py -v
+```
+
+The test suite validates color classification logic with synthetic images of known colors, ensures configuration parsing handles all required fields correctly, and verifies that the preprocessing pipeline produces expected output structures. While some tests require trained model weights and will skip gracefully if unavailable, the majority of tests operate with mock configurations and synthetic data.
+
+## Project Structure
+
+The codebase follows a modular organization with clear separation between data handling, model management, training logic, and inference capabilities. The `bsort` package contains all core functionality organized into submodules. Configuration management is centralized in `config.py` using dataclasses for type safety and clarity. The CLI interface in `cli.py` provides the primary user interaction point, wrapping complex operations in simple commands.
+
+Data preprocessing logic resides in `bsort/data/preprocessing.py` and implements both color classification and dataset organization. Training functionality in `bsort/training/trainer.py` handles model initialization, training loop execution, and checkpoint management. The inference pipeline in `bsort/inference/predictor.py` supports multiple input sources and output formats.
+
+Testing infrastructure is organized in the `tests/` directory with separate modules for each major component. Configuration examples in `configs/` provide starting points for different deployment scenarios. The Docker configuration enables containerized deployment with minimal setup requirements.
+
+## Troubleshooting
+
+Common issues and their solutions are documented here to facilitate rapid problem resolution. If you encounter problems not covered in this section, consult the project issue tracker or open a new issue with detailed reproduction steps.
+
+If preprocessing reports zero images processed, verify that your dataset paths in the configuration file are correct and that image files have standard extensions like `.jpg` or `.png`. The preprocessing script only processes files in the root of the images directory, not in subdirectories, to avoid processing already split data.
+
+When training fails to start, check that your GPU drivers and CUDA installation are properly configured if using GPU acceleration. The system defaults to GPU device 0, so ensure this device exists on your system or modify the configuration to use CPU or a different GPU index.
+
+If color classification produces unexpected results with most caps classified as "other", review your HSV threshold values. The default values target specific blue shades and may not generalize to all datasets. Use a color picker tool to analyze sample bottle cap images and adjust thresholds accordingly.
+
+For inference performance issues where processing is slower than expected, verify that you are using the ONNX model with INT8 quantization rather than the original PyTorch weights. Additionally, confirm that the inference is running on the intended device and not falling back to a slower computational path.
+
+Memory errors during training typically indicate that the batch size is too large for available GPU memory. Reduce the batch size in your configuration and restart training. The YOLOv8 Nano model should train successfully with batch sizes as low as 8, though larger batch sizes generally provide more stable training dynamics.
+
+## Contributing
+
+Contributions to improve detection accuracy, reduce inference latency, or enhance system capabilities are welcome. When submitting pull requests, ensure all tests pass and code follows the established style guidelines enforced by Black and isort formatters. Add tests for new functionality to maintain code coverage above 80 percent.
+
+For bug reports or feature requests, open an issue with detailed reproduction steps and expected behavior descriptions. Include relevant configuration files and log outputs to facilitate troubleshooting.
+
+## License
+
+This project is released under the MIT License, permitting commercial and non-commercial use with attribution. See the LICENSE file for complete terms and conditions.
+
+## Acknowledgments
+
+This system builds upon the excellent work of the Ultralytics team in developing and maintaining the YOLOv8 architecture. The ONNX Runtime provides critical optimization capabilities for edge deployment scenarios.
