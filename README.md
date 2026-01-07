@@ -27,7 +27,7 @@ Configuration management employs a hierarchical YAML-based system that separates
 The system requires Python 3.10 or higher and can be installed through multiple approaches depending on your deployment scenario. For development environments, clone the repository and install the package in editable mode to enable code modifications and testing.
 
 ```bash
-git clone https://github.com/yourusername/bottlecap-detection.git
+git clone https://github.com/felixsutanto/Bottle-Cap-Detection.git
 cd bottlecap-detection
 pip install -e .
 ```
